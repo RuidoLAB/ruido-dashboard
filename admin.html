@@ -16,8 +16,8 @@ h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;margin-bo
 .admin-badge{font-size:11px;font-weight:500;color:#fff;background:var(--sun1);padding:3px 10px;border-radius:20px;}
 .login-wrap{max-width:340px;margin:80px auto;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;}
 .login-wrap h2{text-align:center;margin-bottom:20px;}
-.login-wrap input{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;outline:none;}
-.login-wrap input:focus{border-color:var(--sun1);}
+.login-inp{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;outline:none;}
+.login-inp:focus{border-color:var(--sun1);}
 .login-btn{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--sun1),var(--sun4));color:#fff;cursor:pointer;}
 .login-error{font-size:12px;color:var(--sun4);margin-top:8px;text-align:center;}
 .section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;}
@@ -28,11 +28,18 @@ select.inp{cursor:pointer;}
 label{font-size:11px;font-weight:500;color:var(--txt2);display:block;margin-bottom:4px;}
 .btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 20px;border-radius:8px;border:none;cursor:pointer;}
 .btn-primary{background:linear-gradient(135deg,var(--sun1),var(--sun4));color:#fff;}
+.btn-secondary{background:#F5F5F5;color:var(--txt2);}
 .btn-danger{background:#FFF0F0;color:var(--sun4);border:1px solid #FFCCCC;}
 .btn-primary:hover{opacity:.9;}
-.stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
-.stat-pill{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:13px;}
-.stat-pill strong{font-size:18px;display:block;color:var(--sun1);}
+.campaigns-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:20px;}
+.campaign-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;border-top:3px solid var(--sun1);cursor:pointer;transition:all .2s;}
+.campaign-card:hover{box-shadow:0 4px 16px rgba(255,107,53,.15);}
+.campaign-card.active{border-color:var(--sun1);box-shadow:0 0 0 2px var(--sun1);}
+.campaign-name{font-family:'DM Serif Display',serif;font-size:16px;font-weight:400;color:var(--txt);margin-bottom:4px;}
+.campaign-slug{font-size:11px;color:var(--txt2);margin-bottom:10px;}
+.campaign-stats{font-size:12px;color:var(--txt2);}
+.campaign-link{font-size:11px;color:var(--sun1);word-break:break-all;margin-top:8px;display:block;}
+.campaign-actions{display:flex;gap:6px;margin-top:12px;}
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 thead th{text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);padding:8px 12px;border-bottom:1px solid var(--border);}
@@ -45,10 +52,11 @@ tbody td{padding:10px 12px;color:var(--txt);}
 .btn-del{background:#FFF0F0;color:var(--sun4);}
 .toast{position:fixed;bottom:24px;right:24px;background:var(--txt);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;}
 .toast.show{opacity:1;}
-.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:#FAFAFA;}
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:#FAFAFA;}
 .drop-zone:hover{border-color:var(--sun1);background:var(--sun-light);}
-.campaign-edit{display:flex;gap:10px;align-items:flex-end;}
-.campaign-edit .inp{max-width:320px;}
+.selected-campaign-bar{background:var(--sun-light);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.scb-name{font-size:14px;font-weight:500;color:var(--txt);}
+.scb-slug{font-size:11px;color:var(--txt2);}
 @media(max-width:640px){.form-grid{grid-template-columns:1fr;}.header{flex-direction:column;}}
 </style>
 </head>
@@ -57,7 +65,7 @@ tbody td{padding:10px 12px;color:var(--txt);}
 <div id="login-screen">
   <div class="login-wrap">
     <h2>Admin — RUIDO</h2>
-    <input type="password" id="pwd-input" placeholder="Contraseña"/>
+    <input type="password" class="login-inp" id="pwd-input" placeholder="Contraseña"/>
     <button class="login-btn" onclick="checkLogin()">Entrar</button>
     <div class="login-error" id="login-error"></div>
   </div>
@@ -67,10 +75,7 @@ tbody td{padding:10px 12px;color:var(--txt);}
   <div class="header">
     <div style="display:flex;align-items:center;gap:16px;">
       <img src="logo.png" style="height:30px;width:auto;" alt="RUIDO" onerror="this.style.display='none'">
-      <div>
-        <h1>Dashboard Admin</h1>
-        <p style="font-size:12px;color:var(--txt2);margin-top:2px;" id="admin-subtitle">Cargando...</p>
-      </div>
+      <div><h1>Dashboard Admin</h1><p style="font-size:12px;color:var(--txt2);margin-top:2px;">RUIDO — Multi-campaña</p></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <span class="admin-badge">Vista admin</span>
@@ -78,97 +83,114 @@ tbody td{padding:10px 12px;color:var(--txt);}
     </div>
   </div>
 
-  <!-- NOMBRE DE CAMPAÑA -->
+  <!-- CAMPAÑAS -->
   <div class="section">
-    <h2>Nombre de campaña</h2>
-    <div class="campaign-edit">
-      <div style="flex:1">
-        <label>Nombre que verá el cliente en el dashboard</label>
-        <input class="inp" id="campaign-name-input" placeholder="Ej: De La Ghetto, Bad Bunny..."/>
-      </div>
-      <button class="btn btn-primary" onclick="saveCampaignName()">Guardar</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <h2 style="margin:0">Campañas</h2>
+      <button class="btn btn-primary" onclick="showNewCampaignForm()">+ Nueva campaña</button>
     </div>
-  </div>
 
-  <!-- STATS -->
-  <div class="stats-row" id="stats-row"></div>
-
-  <!-- FORM AGREGAR -->
-  <div class="section">
-    <h2 id="form-title">Agregar post</h2>
-    <input type="hidden" id="edit-id"/>
-    <div class="form-grid">
-      <div><label>Nombre del influencer</label><input class="inp" id="f-nombre" placeholder="@usuario"/></div>
-      <div><label>Link del post</label><input class="inp" id="f-url" placeholder="https://vt.tiktok.com/..."/></div>
-    </div>
-    <div class="form-grid">
-      <div><label>Grupo (escribe el que quieras, ej: Presencial, Digital, Tier 1...)</label><input class="inp" id="f-grupo" placeholder="Ej: Presencial"/></div>
-      <div><label>Views</label><input class="inp" id="f-views" type="number" min="0" placeholder="0"/></div>
-    </div>
-    <div class="form-grid">
-      <div><label>Likes</label><input class="inp" id="f-likes" type="number" min="0" placeholder="0"/></div>
-      <div><label>Comentarios</label><input class="inp" id="f-comments" type="number" min="0" placeholder="0"/></div>
-    </div>
-    <div class="form-grid">
-      <div><label>Shares</label><input class="inp" id="f-shares" type="number" min="0" placeholder="0"/></div>
-      <div style="display:flex;align-items:flex-end;gap:8px;">
-        <button class="btn btn-primary" onclick="savePost()" id="save-btn">+ Agregar</button>
-        <button class="btn" style="background:#F5F5F5;color:var(--txt2);display:none" onclick="cancelEdit()" id="cancel-btn">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- IMPORTAR CSV -->
-  <div class="section">
-    <h2>Importar posts desde CSV</h2>
-    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">Columnas requeridas: <strong>nombre, url, grupo, views, likes, comments, shares</strong></p>
-    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()"
-      ondragover="event.preventDefault();this.style.borderColor='var(--sun1)'"
-      ondragleave="this.style.borderColor='var(--border)'"
-      ondrop="handleDrop(event)">
-      <div style="font-size:28px;margin-bottom:8px;">📂</div>
-      <div style="font-size:13px;font-weight:500;color:var(--txt2)">Arrastra tu CSV aquí o haz clic para seleccionar</div>
-    </div>
-    <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFile(this.files[0])"/>
-    <div id="import-preview" style="display:none;margin-top:14px;">
-      <div style="font-size:13px;font-weight:500;color:var(--txt);margin-bottom:10px;" id="preview-title"></div>
-      <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;">
-        <table><thead><tr style="background:#F9F9F9;">
-          <th style="padding:8px;border-bottom:1px solid var(--border)">Nombre</th>
-          <th style="padding:8px;border-bottom:1px solid var(--border)">Grupo</th>
-          <th style="padding:8px;border-bottom:1px solid var(--border)">Views</th>
-          <th style="padding:8px;border-bottom:1px solid var(--border)">Likes</th>
-        </tr></thead><tbody id="preview-body"></tbody></table>
+    <!-- FORM NUEVA CAMPAÑA -->
+    <div id="new-campaign-form" style="display:none;background:#FFF8F3;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div class="form-grid">
+        <div><label>Nombre de la campaña</label><input class="inp" id="nc-name" placeholder="Ej: De La Ghetto"/></div>
+        <div><label>Slug (para el link del cliente)</label><input class="inp" id="nc-slug" placeholder="Ej: delaghetto" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')"/></div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary" onclick="importCSV()">⬆ Subir todos a Supabase</button>
-        <button class="btn" style="background:#F5F5F5;color:var(--txt2)" onclick="cancelImport()">Cancelar</button>
+        <button class="btn btn-primary" onclick="createCampaign()">Crear campaña</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('new-campaign-form').style.display='none'">Cancelar</button>
       </div>
+      <p style="font-size:11px;color:var(--txt2);margin-top:8px;">El cliente verá su dashboard en: <strong>ruido-dashboard.vercel.app?c=<span id="slug-preview">slug</span></strong></p>
     </div>
-    <div id="import-progress" style="display:none;margin-top:12px;">
-      <div style="font-size:13px;color:var(--txt2)" id="import-status">Importando...</div>
-      <div style="background:var(--border);border-radius:4px;height:6px;margin-top:8px;overflow:hidden;">
-        <div id="import-bar" style="height:100%;background:var(--sun1);border-radius:4px;width:0%;transition:width .3s"></div>
-      </div>
-    </div>
+
+    <div class="campaigns-grid" id="campaigns-grid"></div>
   </div>
 
-  <!-- TABLA -->
-  <div class="section">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <h2 style="margin:0">Posts (<span id="post-count">0</span>)</h2>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <input class="inp" style="width:200px;" placeholder="Buscar..." oninput="filterTable(this.value)"/>
-        <button class="btn btn-danger" style="font-size:12px;padding:6px 14px;" onclick="clearAllPosts()">🗑 Limpiar campaña</button>
+  <!-- POSTS DE LA CAMPAÑA SELECCIONADA -->
+  <div id="campaign-detail" style="display:none">
+    <div class="selected-campaign-bar">
+      <div><div class="scb-name" id="scb-name">—</div><div class="scb-slug" id="scb-slug">—</div></div>
+      <a id="scb-link" href="#" target="_blank" style="font-size:12px;color:var(--sun1);font-weight:500">Ver como cliente →</a>
+    </div>
+
+    <!-- STATS -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;" id="stats-row"></div>
+
+    <!-- FORM AGREGAR POST -->
+    <div class="section">
+      <h2 id="form-title">Agregar post</h2>
+      <input type="hidden" id="edit-id"/>
+      <div class="form-grid">
+        <div><label>Nombre del influencer</label><input class="inp" id="f-nombre" placeholder="@usuario"/></div>
+        <div><label>Link del post</label><input class="inp" id="f-url" placeholder="https://vt.tiktok.com/..."/></div>
+      </div>
+      <div class="form-grid">
+        <div><label>Grupo (ej: Presencial, Digital, Tier 1...)</label><input class="inp" id="f-grupo" placeholder="Ej: Presencial"/></div>
+        <div><label>Views</label><input class="inp" id="f-views" type="number" min="0" placeholder="0"/></div>
+      </div>
+      <div class="form-grid">
+        <div><label>Likes</label><input class="inp" id="f-likes" type="number" min="0" placeholder="0"/></div>
+        <div><label>Comentarios</label><input class="inp" id="f-comments" type="number" min="0" placeholder="0"/></div>
+      </div>
+      <div class="form-grid">
+        <div><label>Shares</label><input class="inp" id="f-shares" type="number" min="0" placeholder="0"/></div>
+        <div style="display:flex;align-items:flex-end;gap:8px;">
+          <button class="btn btn-primary" onclick="savePost()" id="save-btn">+ Agregar</button>
+          <button class="btn btn-secondary" style="display:none" onclick="cancelEdit()" id="cancel-btn">Cancelar</button>
+        </div>
       </div>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>Influencer</th><th>Grupo</th><th>Views</th><th>Likes</th><th>Coments</th><th>Shares</th><th>Acciones</th>
-        </tr></thead>
-        <tbody id="posts-table"></tbody>
-      </table>
+
+    <!-- IMPORTAR CSV -->
+    <div class="section">
+      <h2>Importar posts desde CSV</h2>
+      <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">Columnas: <strong>nombre, url, grupo, views, likes, comments, shares</strong></p>
+      <div class="drop-zone" onclick="document.getElementById('csv-input').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--sun1)'"
+        ondragleave="this.style.borderColor='var(--border)'"
+        ondrop="handleDrop(event)">
+        <div style="font-size:28px;margin-bottom:8px;">📂</div>
+        <div style="font-size:13px;font-weight:500;color:var(--txt2)">Arrastra tu CSV aquí o haz clic</div>
+      </div>
+      <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFile(this.files[0])"/>
+      <div id="import-preview" style="display:none;margin-top:14px;">
+        <div style="font-size:13px;font-weight:500;margin-bottom:10px;" id="preview-title"></div>
+        <div style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;">
+          <table><thead><tr style="background:#F9F9F9;">
+            <th style="padding:8px;border-bottom:1px solid var(--border)">Nombre</th>
+            <th style="padding:8px;border-bottom:1px solid var(--border)">Grupo</th>
+            <th style="padding:8px;border-bottom:1px solid var(--border)">Views</th>
+            <th style="padding:8px;border-bottom:1px solid var(--border)">Likes</th>
+          </tr></thead><tbody id="preview-body"></tbody></table>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="importCSV()">⬆ Subir todos</button>
+          <button class="btn btn-secondary" onclick="cancelImport()">Cancelar</button>
+        </div>
+      </div>
+      <div id="import-progress" style="display:none;margin-top:12px;">
+        <div style="font-size:13px;color:var(--txt2)" id="import-status">Importando...</div>
+        <div style="background:var(--border);border-radius:4px;height:6px;margin-top:8px;overflow:hidden;">
+          <div id="import-bar" style="height:100%;background:var(--sun1);border-radius:4px;width:0%;transition:width .3s"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLA POSTS -->
+    <div class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <h2 style="margin:0">Posts (<span id="post-count">0</span>)</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input class="inp" style="width:180px;" placeholder="Buscar..." oninput="filterTable(this.value)"/>
+          <button class="btn btn-danger" style="font-size:12px;padding:6px 14px;" onclick="clearCampaignPosts()">🗑 Limpiar posts</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Influencer</th><th>Grupo</th><th>Views</th><th>Likes</th><th>Coments</th><th>Shares</th><th>Acciones</th></tr></thead>
+          <tbody id="posts-table"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -181,54 +203,99 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const ADMIN_PASSWORD='ruido2024';
 const {createClient}=supabase;
 const db=createClient(SUPABASE_URL,SUPABASE_KEY);
-let allPosts=[],csvData=[];
+let allPosts=[],csvData=[],selectedCampaign=null,allCampaigns=[];
 
 function checkLogin(){
   if(document.getElementById('pwd-input').value===ADMIN_PASSWORD){
     document.getElementById('login-screen').style.display='none';
     document.getElementById('admin-screen').style.display='block';
-    loadAll();
-  } else {
-    document.getElementById('login-error').textContent='Contraseña incorrecta';
-  }
+    loadCampaigns();
+  } else {document.getElementById('login-error').textContent='Contraseña incorrecta';}
 }
 function logout(){document.getElementById('login-screen').style.display='block';document.getElementById('admin-screen').style.display='none';document.getElementById('pwd-input').value='';}
 function fmt(n){if(!n)return'0';if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n);}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
-async function loadAll(){
-  const [{data:cfg},{data:pd}]=await Promise.all([db.from('config').select('*'),db.from('posts').select('*').order('views',{ascending:false})]);
-  const nameRow=cfg?.find(r=>r.key==='campaign_name');
-  if(nameRow){
-    document.getElementById('campaign-name-input').value=nameRow.value;
-    document.getElementById('admin-subtitle').textContent='Campaña: '+nameRow.value;
-  }
-  allPosts=pd||[];
-  renderStats();renderTable(allPosts);
+function showNewCampaignForm(){
+  document.getElementById('new-campaign-form').style.display='block';
+  document.getElementById('nc-name').focus();
 }
 
-async function saveCampaignName(){
-  const val=document.getElementById('campaign-name-input').value.trim();
-  if(!val)return;
-  const {data:existing}=await db.from('config').select('*').eq('key','campaign_name');
-  let error;
-  if(existing&&existing.length>0){
-    ({error}=await db.from('config').update({value:val}).eq('key','campaign_name'));
-  } else {
-    ({error}=await db.from('config').insert([{key:'campaign_name',value:val}]));
-  }
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('nc-name')?.addEventListener('input',function(){
+    const slug=this.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    document.getElementById('nc-slug').value=slug;
+    document.getElementById('slug-preview').textContent=slug||'slug';
+  });
+});
+
+async function loadCampaigns(){
+  const {data}=await db.from('campaigns').select('*').order('created_at',{ascending:false});
+  allCampaigns=data||[];
+  renderCampaigns();
+}
+
+function renderCampaigns(){
+  const grid=document.getElementById('campaigns-grid');
+  if(!allCampaigns.length){grid.innerHTML='<p style="color:var(--txt2);font-size:13px">No hay campañas aún. Crea la primera.</p>';return;}
+  grid.innerHTML=allCampaigns.map(c=>`
+    <div class="campaign-card ${selectedCampaign?.id===c.id?'active':''}" onclick="selectCampaign(${c.id})">
+      <div class="campaign-name">${c.name}</div>
+      <div class="campaign-slug">/${c.slug}</div>
+      <a class="campaign-link" href="/?c=${c.slug}" target="_blank" onclick="event.stopPropagation()">ruido-dashboard.vercel.app?c=${c.slug} →</a>
+      <div class="campaign-actions">
+        <button class="btn-sm btn-del" onclick="event.stopPropagation();deleteCampaign(${c.id},'${c.name.replace(/'/g,"\\'")}')">Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+async function createCampaign(){
+  const name=document.getElementById('nc-name').value.trim();
+  const slug=document.getElementById('nc-slug').value.trim();
+  if(!name||!slug){showToast('Completa nombre y slug');return;}
+  const {error}=await db.from('campaigns').insert([{name,slug}]);
   if(error){showToast('Error: '+error.message);return;}
-  document.getElementById('admin-subtitle').textContent='Campaña: '+val;
-  showToast('Nombre actualizado ✓');
+  document.getElementById('nc-name').value='';
+  document.getElementById('nc-slug').value='';
+  document.getElementById('new-campaign-form').style.display='none';
+  showToast('Campaña creada ✓');
+  loadCampaigns();
+}
+
+async function deleteCampaign(id,name){
+  if(!confirm(`¿Eliminar la campaña "${name}" y todos sus posts?`))return;
+  await db.from('posts').delete().eq('campaign_id',id);
+  await db.from('campaigns').delete().eq('id',id);
+  if(selectedCampaign?.id===id){selectedCampaign=null;document.getElementById('campaign-detail').style.display='none';}
+  showToast('Campaña eliminada ✓');
+  loadCampaigns();
+}
+
+async function selectCampaign(id){
+  selectedCampaign=allCampaigns.find(c=>c.id===id);
+  if(!selectedCampaign)return;
+  document.getElementById('scb-name').textContent=selectedCampaign.name;
+  document.getElementById('scb-slug').textContent='Link: ruido-dashboard.vercel.app?c='+selectedCampaign.slug;
+  document.getElementById('scb-link').href='/?c='+selectedCampaign.slug;
+  document.getElementById('campaign-detail').style.display='block';
+  renderCampaigns();
+  loadPosts();
+}
+
+async function loadPosts(){
+  if(!selectedCampaign)return;
+  const {data}=await db.from('posts').select('*').eq('campaign_id',selectedCampaign.id).order('views',{ascending:false});
+  allPosts=data||[];
+  renderStats();renderTable(allPosts);
 }
 
 function renderStats(){
   const tv=allPosts.reduce((s,p)=>s+(p.views||0),0);
   const groups=[...new Set(allPosts.map(p=>p.grupo).filter(Boolean))];
   document.getElementById('stats-row').innerHTML=
-    `<div class="stat-pill"><strong>${allPosts.length}</strong>Posts totales</div>`+
-    `<div class="stat-pill"><strong>${fmt(tv)}</strong>Views totales</div>`+
-    groups.map(g=>`<div class="stat-pill"><strong>${allPosts.filter(p=>p.grupo===g).length}</strong>${g}</div>`).join('');
+    `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:13px"><strong style="font-size:18px;display:block;color:var(--sun1)">${allPosts.length}</strong>Posts</div>`+
+    `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:13px"><strong style="font-size:18px;display:block;color:var(--sun1)">${fmt(tv)}</strong>Views</div>`+
+    groups.map(g=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:13px"><strong style="font-size:18px;display:block;color:var(--sun1)">${allPosts.filter(p=>p.grupo===g).length}</strong>${g}</div>`).join('');
 }
 
 function renderTable(posts){
@@ -248,6 +315,7 @@ function renderTable(posts){
 function filterTable(q){renderTable(allPosts.filter(p=>p.nombre.toLowerCase().includes(q.toLowerCase())));}
 
 async function savePost(){
+  if(!selectedCampaign){showToast('Selecciona una campaña primero');return;}
   const id=document.getElementById('edit-id').value;
   const post={
     nombre:document.getElementById('f-nombre').value.trim(),
@@ -257,13 +325,14 @@ async function savePost(){
     likes:parseInt(document.getElementById('f-likes').value)||0,
     comments:parseInt(document.getElementById('f-comments').value)||0,
     shares:parseInt(document.getElementById('f-shares').value)||0,
+    campaign_id:selectedCampaign.id,
   };
   if(!post.nombre){document.getElementById('f-nombre').focus();return;}
   let error;
   if(id){({error}=await db.from('posts').update(post).eq('id',id));showToast('Post actualizado ✓');}
   else{({error}=await db.from('posts').insert([post]));showToast('Post agregado ✓');}
   if(error){showToast('Error: '+error.message);return;}
-  cancelEdit();loadAll();
+  cancelEdit();loadPosts();
 }
 
 function editPost(id){
@@ -279,7 +348,7 @@ function editPost(id){
   document.getElementById('form-title').textContent='Editar post';
   document.getElementById('save-btn').textContent='Guardar cambios';
   document.getElementById('cancel-btn').style.display='inline-block';
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:document.getElementById('campaign-detail').offsetTop,behavior:'smooth'});
 }
 
 function cancelEdit(){
@@ -294,19 +363,18 @@ async function deletePost(id,nombre){
   if(!confirm(`¿Borrar el post de ${nombre}?`))return;
   const {error}=await db.from('posts').delete().eq('id',id);
   if(error){showToast('Error: '+error.message);return;}
-  showToast('Post eliminado ✓');loadAll();
+  showToast('Post eliminado ✓');loadPosts();
 }
 
-async function clearAllPosts(){
-  if(!confirm('¿Eliminar TODOS los posts? Esto limpia la campaña actual para cargar una nueva.'))return;
-  const {error}=await db.from('posts').delete().neq('id',0);
-  if(error){showToast('Error: '+error.message);return;}
-  showToast('Campaña limpiada ✓');loadAll();
+async function clearCampaignPosts(){
+  if(!selectedCampaign)return;
+  if(!confirm(`¿Eliminar todos los posts de "${selectedCampaign.name}"?`))return;
+  await db.from('posts').delete().eq('campaign_id',selectedCampaign.id);
+  showToast('Posts eliminados ✓');loadPosts();
 }
 
 function handleDrop(e){
   e.preventDefault();
-  document.getElementById('drop-zone').style.borderColor='var(--border)';
   const file=e.dataTransfer.files[0];
   if(file&&file.name.endsWith('.csv'))handleFile(file);
   else showToast('Solo archivos .csv');
@@ -320,32 +388,33 @@ function handleFile(file){
     const headers=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/"/g,''));
     const idx={nombre:headers.indexOf('nombre'),url:headers.indexOf('url'),grupo:headers.indexOf('grupo'),
       views:headers.indexOf('views'),likes:headers.indexOf('likes'),comments:headers.indexOf('comments'),shares:headers.indexOf('shares')};
-    if(idx.nombre<0||idx.views<0){showToast('CSV inválido — revisa las columnas');return;}
+    if(idx.nombre<0||idx.views<0){showToast('CSV inválido');return;}
     csvData=lines.slice(1).filter(l=>l.trim()).map(line=>{
       const cols=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
       return{nombre:cols[idx.nombre]||'',url:idx.url>=0?cols[idx.url]||'':'',grupo:idx.grupo>=0?cols[idx.grupo]||'':'',
         views:parseInt(cols[idx.views])||0,likes:parseInt(cols[idx.likes])||0,
         comments:parseInt(cols[idx.comments])||0,shares:parseInt(cols[idx.shares])||0};
     }).filter(p=>p.nombre);
-    document.getElementById('preview-title').textContent=`${csvData.length} posts listos para importar`;
-    document.getElementById('preview-body').innerHTML=csvData.slice(0,10).map(p=>`
+    document.getElementById('preview-title').textContent=`${csvData.length} posts listos`;
+    document.getElementById('preview-body').innerHTML=csvData.slice(0,8).map(p=>`
       <tr>
         <td style="padding:6px 8px;border-bottom:1px solid var(--border)">${p.nombre}</td>
         <td style="padding:6px 8px;border-bottom:1px solid var(--border)">${p.grupo||'—'}</td>
         <td style="padding:6px 8px;border-bottom:1px solid var(--border)">${p.views.toLocaleString()}</td>
         <td style="padding:6px 8px;border-bottom:1px solid var(--border)">${p.likes.toLocaleString()}</td>
-      </tr>`).join('')+(csvData.length>10?`<tr><td colspan="4" style="padding:6px 8px;color:var(--txt2);font-size:11px">... y ${csvData.length-10} más</td></tr>`:'');
+      </tr>`).join('')+(csvData.length>8?`<tr><td colspan="4" style="padding:6px 8px;color:var(--txt2);font-size:11px">... y ${csvData.length-8} más</td></tr>`:'');
     document.getElementById('import-preview').style.display='block';
   };
   reader.readAsText(file);
 }
 
 async function importCSV(){
-  if(!csvData.length)return;
+  if(!csvData.length||!selectedCampaign)return;
   document.getElementById('import-preview').style.display='none';
   document.getElementById('import-progress').style.display='block';
   const total=csvData.length;let done=0,errors=0;
-  const batches=[];for(let i=0;i<csvData.length;i+=10)batches.push(csvData.slice(i,i+10));
+  const withCampaign=csvData.map(p=>({...p,campaign_id:selectedCampaign.id}));
+  const batches=[];for(let i=0;i<withCampaign.length;i+=10)batches.push(withCampaign.slice(i,i+10));
   for(const batch of batches){
     const {error}=await db.from('posts').insert(batch);
     if(error)errors+=batch.length;else done+=batch.length;
@@ -355,7 +424,7 @@ async function importCSV(){
   document.getElementById('import-progress').style.display='none';
   csvData=[];document.getElementById('csv-input').value='';
   showToast(errors===0?`✓ ${done} posts importados`:`${done} OK — ${errors} errores`);
-  loadAll();
+  loadPosts();
 }
 
 function cancelImport(){csvData=[];document.getElementById('import-preview').style.display='none';document.getElementById('csv-input').value='';}

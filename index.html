@@ -18,6 +18,8 @@ h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;margin-bo
 .loading{text-align:center;padding:60px;color:var(--txt2);}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--sun1);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg)}}
+.error-state{text-align:center;padding:60px;color:var(--txt2);}
+.error-state h2{font-size:18px;margin-bottom:8px;color:var(--sun4);}
 .metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
 .metric-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden;}
 .metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
@@ -85,7 +87,12 @@ h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;margin-bo
   </div>
   <span class="client-badge">🌅 Vista cliente</span>
 </div>
+
 <div id="loading" class="loading"><div class="spinner"></div>Cargando datos...</div>
+<div id="error-screen" style="display:none" class="error-state">
+  <h2>Campaña no encontrada</h2>
+  <p>El link que estás usando no corresponde a ninguna campaña activa.</p>
+</div>
 <div id="content" style="display:none">
   <p style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;" id="posts-count">Resumen total</p>
   <div class="metrics-grid">
@@ -120,6 +127,7 @@ h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;margin-bo
     <div class="influencer-list" id="inf-list"></div>
   </div>
 </div>
+
 <script>
 const SUPABASE_URL='https://mutwvgxgcviilvzgcbwr.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11dHd2Z3hnY3ZpaWx2emdjYndyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1ODczNTMsImV4cCI6MjA5NDE2MzM1M30.Nuo9_uKIsT_U1DZaT7dGJZJmDZ4Krja2FwjEsvnGX4I';
@@ -181,7 +189,7 @@ function renderGroups(){
         <div class="gkpi"><div class="gkpi-val" style="color:${col}">${s.er}%</div><div class="gkpi-lbl">Eng. Rate</div></div>
         <div class="gkpi"><div class="gkpi-val">${fmt(s.avgViews)}</div><div class="gkpi-lbl">Views/post</div></div>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="font-size:10px;font-weight:500;padding:3px 9px;border-radius:20px;background:${col}22;color:${col}">${vp}% del alcance</span></div>
+      <div style="display:flex;gap:6px"><span style="font-size:10px;font-weight:500;padding:3px 9px;border-radius:20px;background:${col}22;color:${col}">${vp}% del alcance</span></div>
     </div>`;
   }).join('');
 
@@ -189,7 +197,6 @@ function renderGroups(){
   cdata.forEach(x=>{x.vp=tv?(x.views/tv*100).toFixed(1):0;x.ep=te?(x.engagement/te*100).toFixed(1):0;});
   const tv2=cdata.reduce((a,b)=>parseFloat(a.vp)>parseFloat(b.vp)?a:b);
   const te2=cdata.reduce((a,b)=>parseFloat(a.ep)>parseFloat(b.ep)?a:b);
-
   document.getElementById('comp-section').innerHTML=`
     <div style="font-size:11px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Comparación por métrica</div>
     <div class="comp-row">
@@ -264,14 +271,36 @@ function setMetric(m,btn){
 }
 
 async function loadData(){
-  const [{data:cfg},{data:pd}]=await Promise.all([db.from('config').select('*'),db.from('posts').select('*').order('views',{ascending:false})]);
-  const nameRow=cfg?.find(r=>r.key==='campaign_name');
-  if(nameRow){document.getElementById('campaign-title').textContent='Dashboard — '+nameRow.value;document.title='Dashboard — '+nameRow.value;}
-  posts=pd||[];groups=[...new Set(posts.map(p=>p.grupo).filter(Boolean))];
+  // Get slug from URL ?c=slug
+  const slug=new URLSearchParams(window.location.search).get('c');
+  if(!slug){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('error-screen').style.display='block';
+    return;
+  }
+
+  // Find campaign by slug
+  const {data:campaigns}=await db.from('campaigns').select('*').eq('slug',slug);
+  if(!campaigns||!campaigns.length){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('error-screen').style.display='block';
+    return;
+  }
+
+  const campaign=campaigns[0];
+  document.getElementById('campaign-title').textContent='Dashboard — '+campaign.name;
+  document.title='Dashboard — '+campaign.name;
+
+  // Load posts for this campaign
+  const {data:pd}=await db.from('posts').select('*').eq('campaign_id',campaign.id).order('views',{ascending:false});
+  posts=pd||[];
+  groups=[...new Set(posts.map(p=>p.grupo).filter(Boolean))];
+
   document.getElementById('loading').style.display='none';
   document.getElementById('content').style.display='block';
   updateTotals();renderInsights();renderGroups();renderFilters();renderList();updateChart();
 }
+
 loadData();
 </script>
 </body>
