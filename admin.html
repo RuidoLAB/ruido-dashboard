@@ -125,6 +125,46 @@ tbody td{padding:10px 12px;color:var(--txt);}
     </div>
   </div>
 
+  <!-- IMPORTAR CSV -->
+  <div class="section">
+    <h2>Importar posts desde CSV</h2>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">El CSV debe tener columnas: <strong>nombre, url, grupo, views, likes, comments, shares</strong>. El grupo debe ser <code>comernos</code> o <code>extras</code>.</p>
+    <div id="drop-zone" style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:#FAFAFA;"
+      onclick="document.getElementById('csv-input').click()"
+      ondragover="event.preventDefault();this.style.borderColor='var(--sun1)';this.style.background='var(--sun-light)'"
+      ondragleave="this.style.borderColor='var(--border)';this.style.background='#FAFAFA'"
+      ondrop="handleDrop(event)">
+      <div style="font-size:28px;margin-bottom:8px;">📂</div>
+      <div style="font-size:13px;font-weight:500;color:var(--txt2)">Arrastra tu CSV aquí o haz clic para seleccionar</div>
+      <div style="font-size:11px;color:var(--txt2);margin-top:4px;">Solo archivos .csv</div>
+    </div>
+    <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFile(this.files[0])"/>
+    <div id="import-preview" style="display:none;margin-top:14px;">
+      <div style="font-size:13px;font-weight:500;color:var(--txt);margin-bottom:10px;" id="preview-title"></div>
+      <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#F9F9F9;">
+            <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">Nombre</th>
+            <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">Grupo</th>
+            <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">Views</th>
+            <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">Likes</th>
+          </tr></thead>
+          <tbody id="preview-body"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="importCSV()" id="import-btn">⬆ Subir todos a Supabase</button>
+        <button class="btn" style="background:#F5F5F5;color:var(--txt2);" onclick="cancelImport()">Cancelar</button>
+      </div>
+    </div>
+    <div id="import-progress" style="display:none;margin-top:12px;">
+      <div style="font-size:13px;color:var(--txt2);" id="import-status">Importando...</div>
+      <div style="background:var(--border);border-radius:4px;height:6px;margin-top:8px;overflow:hidden;">
+        <div id="import-bar" style="height:100%;background:var(--sun1);border-radius:4px;width:0%;transition:width .3s;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- TABLA -->
   <div class="section">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
@@ -287,6 +327,101 @@ async function deletePost(id, nombre){
   if(error){showToast('Error: '+error.message);return;}
   showToast('Post eliminado ✓');
   loadPosts();
+}
+
+let csvData = [];
+
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor='var(--border)';
+  document.getElementById('drop-zone').style.background='#FAFAFA';
+  const file = e.dataTransfer.files[0];
+  if(file && file.name.endsWith('.csv')) handleFile(file);
+  else showToast('Solo se aceptan archivos .csv');
+}
+
+function handleFile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h=>h.trim().toLowerCase());
+    const idxNombre  = headers.indexOf('nombre');
+    const idxUrl     = headers.indexOf('url');
+    const idxGrupo   = headers.indexOf('grupo');
+    const idxViews   = headers.indexOf('views');
+    const idxLikes   = headers.indexOf('likes');
+    const idxComments= headers.indexOf('comments');
+    const idxShares  = headers.indexOf('shares');
+
+    if(idxNombre<0||idxGrupo<0||idxViews<0){
+      showToast('CSV inválido — revisa las columnas');
+      return;
+    }
+
+    csvData = lines.slice(1).filter(l=>l.trim()).map(line=>{
+      const cols = line.split(',');
+      return {
+        nombre:   (cols[idxNombre]||'').trim().replace(/^"|"$/g,''),
+        url:      idxUrl>=0?(cols[idxUrl]||'').trim().replace(/^"|"$/g,''):'',
+        grupo:    (cols[idxGrupo]||'comernos').trim().replace(/^"|"$/g,''),
+        views:    parseInt(cols[idxViews])||0,
+        likes:    parseInt(cols[idxLikes])||0,
+        comments: parseInt(cols[idxComments])||0,
+        shares:   parseInt(cols[idxShares])||0,
+      };
+    }).filter(p=>p.nombre);
+
+    document.getElementById('preview-title').textContent = `${csvData.length} posts listos para importar`;
+    document.getElementById('preview-body').innerHTML = csvData.slice(0,10).map(p=>`
+      <tr>
+        <td style="padding:6px 8px;border-bottom:1px solid var(--border)">${p.nombre}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid var(--border)"><span class="tag ${p.grupo==='comernos'?'tag-c':'tag-e'}">${p.grupo}</span></td>
+        <td style="padding:6px 8px;border-bottom:1px solid var(--border)">${p.views.toLocaleString()}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid var(--border)">${p.likes.toLocaleString()}</td>
+      </tr>`).join('') + (csvData.length>10?`<tr><td colspan="4" style="padding:6px 8px;color:var(--txt2);font-size:11px">... y ${csvData.length-10} más</td></tr>`:'');
+
+    document.getElementById('import-preview').style.display='block';
+  };
+  reader.readAsText(file);
+}
+
+async function importCSV(){
+  if(!csvData.length) return;
+  document.getElementById('import-preview').style.display='none';
+  document.getElementById('import-progress').style.display='block';
+  const total = csvData.length;
+  let done = 0, errors = 0;
+
+  // Insert in batches of 10
+  const batches = [];
+  for(let i=0;i<csvData.length;i+=10) batches.push(csvData.slice(i,i+10));
+
+  for(const batch of batches){
+    const {error} = await db.from('posts').insert(batch);
+    if(error){ errors += batch.length; }
+    else { done += batch.length; }
+    const pct = Math.round((done+errors)/total*100);
+    document.getElementById('import-bar').style.width = pct+'%';
+    document.getElementById('import-status').textContent = `Importando... ${done+errors}/${total}`;
+  }
+
+  document.getElementById('import-progress').style.display='none';
+  csvData = [];
+  document.getElementById('csv-input').value='';
+  if(errors===0){
+    showToast(`✓ ${done} posts importados`);
+  } else {
+    showToast(`${done} OK — ${errors} errores`);
+  }
+  loadPosts();
+}
+
+function cancelImport(){
+  csvData=[];
+  document.getElementById('import-preview').style.display='none';
+  document.getElementById('csv-input').value='';
 }
 
 document.getElementById('pwd-input').addEventListener('keydown',e=>{
