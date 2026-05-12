@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard — De La Ghetto</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--sun1:#FF6B35;--sun2:#F7931E;--sun3:#FFD166;--sun4:#FF4757;--sun5:#C44569;--bg:#FFF8F3;--card:#FFFFFF;--border:#F0D9CC;--txt:#2D1B0E;--txt2:#8B5E4A;--sun-light:#FFF0E6;--ext1:#7C3AED;--ext2:#EDE9FE;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);padding:28px;max-width:1100px;margin:0 auto;}
+h1{font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;}
+h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;margin-bottom:14px;}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--sun1);flex-wrap:wrap;gap:10px;}
+.client-badge{font-size:11px;font-weight:500;color:var(--txt2);background:var(--sun-light);border:1px solid var(--border);padding:3px 10px;border-radius:20px;}
+.loading{text-align:center;padding:60px;color:var(--txt2);font-size:14px;}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--sun1);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden;}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.mc-views::before{background:var(--sun1);}
+.mc-likes::before{background:var(--sun2);}
+.mc-comments::before{background:var(--sun3);}
+.mc-shares::before{background:var(--sun4);}
+.metric-label{font-size:10px;color:var(--txt2);font-weight:500;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.metric-value{font-size:24px;font-weight:500;color:var(--txt);line-height:1;}
+.metric-sub{font-size:10px;color:var(--txt2);margin-top:4px;}
+.section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;}
+.chart-controls{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;}
+.ctrl-btn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--txt2);cursor:pointer;transition:all .18s;}
+.ctrl-btn.active{color:#fff;border-color:transparent;}
+.ctrl-btn[data-metric="total"].active{background:linear-gradient(135deg,var(--sun1),var(--sun4));}
+.ctrl-btn[data-metric="views"].active{background:var(--sun1);}
+.ctrl-btn[data-metric="likes"].active{background:var(--sun2);}
+.ctrl-btn[data-metric="comments"].active{background:var(--sun3);color:var(--txt);}
+.ctrl-btn[data-metric="shares"].active{background:var(--sun4);}
+.chart-wrap{position:relative;width:100%;height:260px;}
+.groups-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+.group-card{border-radius:12px;padding:18px;border:1px solid var(--border);}
+.gc-comernos{background:linear-gradient(145deg,#FFF3EE,#FFF8F3);border-top:3px solid var(--sun1);}
+.gc-extras{background:linear-gradient(145deg,#F5F3FF,#FAF9FF);border-top:3px solid var(--ext1);}
+.group-title{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.group-title h3{font-family:'DM Serif Display',serif;font-size:16px;font-weight:400;color:var(--txt);}
+.group-subtitle{font-size:11px;color:var(--txt2);margin-bottom:14px;padding-left:26px;}
+.group-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px;}
+.gkpi{background:rgba(255,255,255,0.7);border-radius:8px;padding:9px;text-align:center;border:1px solid rgba(0,0,0,0.06);}
+.gkpi-val{font-size:16px;font-weight:500;color:var(--txt);line-height:1;}
+.gkpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-top:2px;}
+.group-badges{display:flex;gap:6px;flex-wrap:wrap;}
+.gbadge{font-size:10px;font-weight:500;padding:3px 9px;border-radius:20px;}
+.gbadge-orange{background:#FFF0E6;color:#CC4400;}
+.gbadge-purple{background:#EDE9FE;color:#5B21B6;}
+.group-insight{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.6;color:var(--txt2);}
+.gi-orange{background:#FFF7F3;border-left:3px solid var(--sun1);}
+.gi-purple{background:#F5F3FF;border-left:3px solid var(--ext1);}
+.gi-neutral{background:#F9F9F9;border-left:3px solid var(--sun5);}
+.gi-bold{font-weight:500;color:var(--txt);}
+.comp-row{margin-bottom:10px;}
+.comp-row-header{display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);margin-bottom:4px;flex-wrap:wrap;gap:4px;}
+.comp-bars{display:flex;flex-direction:column;gap:3px;}
+.comp-bar-wrap{display:flex;align-items:center;gap:7px;}
+.comp-bar-label{font-size:9px;color:var(--txt2);width:60px;text-align:right;flex-shrink:0;}
+.comp-bar-track{flex:1;background:#F0D9CC;border-radius:4px;height:7px;overflow:hidden;}
+.comp-bar-fill{height:100%;border-radius:4px;}
+.comp-bar-pct{font-size:9px;font-weight:500;width:32px;flex-shrink:0;}
+.winner-badge{font-size:9px;font-weight:500;padding:2px 7px;border-radius:10px;}
+.wb-orange{background:#FFF0E6;color:#CC4400;}
+.wb-purple{background:#EDE9FE;color:#5B21B6;}
+.insights-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;}
+.insight-card{display:flex;gap:12px;padding:14px;border-radius:10px;border:1px solid var(--border);background:var(--card);}
+.ic-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.ic-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:3px;}
+.ic-title{font-size:13px;font-weight:500;color:var(--txt);margin-bottom:4px;}
+.ic-text{font-size:11px;color:var(--txt2);line-height:1.6;}
+.ic-text strong{color:var(--txt);font-weight:500;}
+.ic-highlight{border-left:3px solid var(--sun1);background:linear-gradient(135deg,#FFF3EE,#FFFFFF);}
+.ic-green{border-left:3px solid #22C55E;background:linear-gradient(135deg,#F0FDF4,#FFFFFF);}
+.ic-purple{border-left:3px solid var(--ext1);background:linear-gradient(135deg,#F5F3FF,#FFFFFF);}
+.ic-orange{border-left:3px solid var(--sun2);background:linear-gradient(135deg,#FFF7ED,#FFFFFF);}
+.ic-neutral{border-left:3px solid var(--sun5);background:linear-gradient(135deg,#FFF0F6,#FFFFFF);}
+.influencer-list{display:flex;flex-direction:column;gap:8px;}
+.inf-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
+.inf-card.is-extras{border-left:3px solid var(--ext1);}
+.inf-card.is-comernos{border-left:3px solid var(--sun1);}
+.inf-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:12px;flex-shrink:0;}
+.inf-info{flex:1;min-width:120px;}
+.inf-name{font-size:13px;font-weight:500;color:var(--txt);}
+.inf-tag{font-size:9px;font-weight:500;padding:2px 7px;border-radius:10px;display:inline-block;margin-top:2px;}
+.tag-c{background:#FFF0E6;color:#CC4400;}
+.tag-e{background:#EDE9FE;color:#5B21B6;}
+.inf-link{font-size:10px;color:var(--sun1);text-decoration:none;word-break:break-all;}
+.inf-metrics{display:flex;flex-wrap:wrap;gap:10px;}
+.inf-m{text-align:center;min-width:52px;}
+.inf-m-val{font-size:14px;font-weight:500;}
+.inf-m-lbl{font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;}
+.tab-btns{display:flex;gap:8px;margin-bottom:14px;}
+.tab-btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 16px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--txt2);cursor:pointer;}
+.tab-btn.active-c{background:var(--sun1);color:#fff;border-color:var(--sun1);}
+.tab-btn.active-e{background:var(--ext1);color:#fff;border-color:var(--ext1);}
+.tab-btn.active-all{background:linear-gradient(135deg,var(--sun1),var(--ext1));color:#fff;border-color:transparent;}
+@media(max-width:640px){.groups-wrap{grid-template-columns:1fr;}.metrics-grid{grid-template-columns:repeat(2,1fr);}.inf-card{flex-direction:column;align-items:flex-start;}.header{flex-direction:column;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:16px;">
+    <img src="logo.png" style="height:32px;width:auto;" alt="RUIDO" onerror="this.style.display='none'">
+    <div>
+      <h1>Dashboard — De La Ghetto</h1>
+      <p style="font-size:12px;color:var(--txt2);margin-top:2px;">Influencer Performance Tracker</p>
+    </div>
+  </div>
+  <span class="client-badge">🌅 Vista cliente</span>
+</div>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  Cargando datos...
+</div>
+
+<div id="content" style="display:none">
+  <p style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:8px;" id="posts-count">Resumen total de campaña</p>
+  <div class="metrics-grid">
+    <div class="metric-card mc-views"><div class="metric-label">Views</div><div class="metric-value" id="t-views">—</div><div class="metric-sub">totales</div></div>
+    <div class="metric-card mc-likes"><div class="metric-label">Likes</div><div class="metric-value" id="t-likes">—</div><div class="metric-sub">totales</div></div>
+    <div class="metric-card mc-comments"><div class="metric-label">Comentarios</div><div class="metric-value" id="t-comments">—</div><div class="metric-sub">totales</div></div>
+    <div class="metric-card mc-shares"><div class="metric-label">Shares</div><div class="metric-value" id="t-shares">—</div><div class="metric-sub">totales</div></div>
+  </div>
+
+  <div class="section">
+    <h2>Insights de la campaña</h2>
+    <div class="insights-grid" id="insights-grid"></div>
+  </div>
+
+  <div class="section">
+    <h2>Audio "Comernos" vs Extras</h2>
+    <p style="font-size:12px;color:var(--txt2);margin-top:-10px;margin-bottom:16px;">Comparación entre posts con audio original y posts con audio externo.</p>
+    <div class="groups-wrap" id="groups-wrap"></div>
+    <div class="section" style="margin-bottom:0;background:#FAFAFA;" id="comp-section"></div>
+  </div>
+
+  <div class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+      <h2 style="margin:0">Evolución de métricas</h2>
+      <div class="chart-controls">
+        <button class="ctrl-btn active" data-metric="total" onclick="setMetric('total',this)">Total</button>
+        <button class="ctrl-btn" data-metric="views" onclick="setMetric('views',this)">Views</button>
+        <button class="ctrl-btn" data-metric="likes" onclick="setMetric('likes',this)">Likes</button>
+        <button class="ctrl-btn" data-metric="comments" onclick="setMetric('comments',this)">Comentarios</button>
+        <button class="ctrl-btn" data-metric="shares" onclick="setMetric('shares',this)">Shares</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+  </div>
+
+  <div class="section">
+    <h2>Posts por influencer</h2>
+    <div class="tab-btns">
+      <button class="tab-btn active-all" onclick="filterList('all',this)">Todos</button>
+      <button class="tab-btn" onclick="filterList('comernos',this)">🎵 Audio Comernos</button>
+      <button class="tab-btn" onclick="filterList('extras',this)">🎧 Extras</button>
+    </div>
+    <div class="influencer-list" id="inf-list"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://mutwvgxgcviilvzgcbwr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11dHd2Z3hnY3ZpaWx2emdjYndyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1ODczNTMsImV4cCI6MjA5NDE2MzM1M30.Nuo9_uKIsT_U1DZaT7dGJZJmDZ4Krja2FwjEsvnGX4I';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const AVATARBG=['#FFE4D6','#FFF3CD','#FFEEF3','#F0E6FF','#E6F4FF'];
+const AVATARTXT=['#CC3D00','#8B6200','#9B003B','#5C00B8','#003D8B'];
+let posts=[], activeMetric='total', chart=null, activeFilter='all';
+
+function fmt(n){if(!n)return'0';if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n);}
+function getAbbr(n){return n.replace(/\s*\(extra\)|\s*\(p?\d+\)/g,'').trim().split(/[._\s]/).map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'??';}
+
+function calcStats(arr){
+  const v=arr.reduce((s,p)=>s+(p.views||0),0);
+  const l=arr.reduce((s,p)=>s+(p.likes||0),0);
+  const c=arr.reduce((s,p)=>s+(p.comments||0),0);
+  const s=arr.reduce((s,p)=>s+(p.shares||0),0);
+  const eng=l+c+s;
+  return{views:v,likes:l,comments:c,shares:s,engagement:eng,er:v?((eng/v)*100).toFixed(1):0,count:arr.length,avgViews:arr.length?Math.round(v/arr.length):0};
+}
+
+function updateTotals(){
+  const t=calcStats(posts);
+  document.getElementById('t-views').textContent=fmt(t.views);
+  document.getElementById('t-likes').textContent=fmt(t.likes);
+  document.getElementById('t-comments').textContent=fmt(t.comments);
+  document.getElementById('t-shares').textContent=fmt(t.shares);
+  document.getElementById('posts-count').textContent=`Resumen total de campaña — ${posts.length} posts`;
+}
+
+function renderInsights(){
+  const sc=calcStats(posts.filter(p=>p.grupo==='comernos'));
+  const byViews=posts.filter(p=>p.grupo==='comernos').sort((a,b)=>b.views-a.views);
+  const byER=posts.filter(p=>p.grupo==='comernos').map(p=>({...p,er:(p.likes+p.comments+p.shares)/p.views*100})).sort((a,b)=>b.er-a.er);
+  const byComments=posts.filter(p=>p.grupo==='comernos').sort((a,b)=>b.comments-a.comments);
+  const byShares=posts.filter(p=>p.grupo==='comernos').sort((a,b)=>b.shares-a.shares);
+
+  document.getElementById('insights-grid').innerHTML=`
+    <div class="insight-card ic-highlight">
+      <div class="ic-icon">🏆</div>
+      <div><div class="ic-label">Mayor alcance — Audio Comernos</div>
+      <div class="ic-title">${byViews[0]?.nombre||'—'} — ${fmt(byViews[0]?.views||0)} views</div>
+      <div class="ic-text">Seguido por ${byViews[1]?.nombre||'—'} (${fmt(byViews[1]?.views||0)}) y ${byViews[2]?.nombre||'—'} (${fmt(byViews[2]?.views||0)}).</div></div>
+    </div>
+    <div class="insight-card ic-green">
+      <div class="ic-icon">🔥</div>
+      <div><div class="ic-label">Mayor engagement rate — Audio Comernos</div>
+      <div class="ic-title">${byER[0]?.nombre||'—'} — ${byER[0]?.er.toFixed(1)||0}% ER</div>
+      <div class="ic-text">Le siguen ${byER[1]?.nombre||'—'} (${byER[1]?.er.toFixed(1)||0}%) y ${byER[2]?.nombre||'—'} (${byER[2]?.er.toFixed(1)||0}%).</div></div>
+    </div>
+    <div class="insight-card ic-orange">
+      <div class="ic-icon">💬</div>
+      <div><div class="ic-label">Más conversación — Audio Comernos</div>
+      <div class="ic-title">${byComments[0]?.nombre||'—'} — ${byComments[0]?.comments||0} comentarios</div>
+      <div class="ic-text">Seguido por ${byComments[1]?.nombre||'—'} (${byComments[1]?.comments||0}) y ${byComments[2]?.nombre||'—'} (${byComments[2]?.comments||0}).</div></div>
+    </div>
+    <div class="insight-card ic-purple">
+      <div class="ic-icon">📤</div>
+      <div><div class="ic-label">Más compartido — Audio Comernos</div>
+      <div class="ic-title">${byShares[0]?.nombre||'—'} — ${byShares[0]?.shares||0} shares</div>
+      <div class="ic-text">Seguido por ${byShares[1]?.nombre||'—'} (${byShares[1]?.shares||0}) y ${byShares[2]?.nombre||'—'} (${byShares[2]?.shares||0}).</div></div>
+    </div>
+    <div class="insight-card ic-neutral">
+      <div class="ic-icon">📊</div>
+      <div><div class="ic-label">Resumen Audio Comernos</div>
+      <div class="ic-title">${fmt(sc.views)} views — ${sc.er}% ER</div>
+      <div class="ic-text">El audio Comernos sumó <strong>${sc.count} posts</strong> con ${fmt(sc.engagement)} interacciones y un promedio de ${fmt(sc.avgViews)} views por post.</div></div>
+    </div>`;
+}
+
+function renderGroups(){
+  const sc=calcStats(posts.filter(p=>p.grupo==='comernos'));
+  const se=calcStats(posts.filter(p=>p.grupo==='extras'));
+  if(!sc.count&&!se.count)return;
+  const tv=sc.views+se.views,te=sc.engagement+se.engagement;
+  const cvp=tv?(sc.views/tv*100).toFixed(1):0,evp=tv?(se.views/tv*100).toFixed(1):0;
+  const cep=te?(sc.engagement/te*100).toFixed(1):0,eep=te?(se.engagement/te*100).toFixed(1):0;
+
+  document.getElementById('groups-wrap').innerHTML=`
+    <div class="group-card gc-comernos">
+      <div class="group-title"><span style="font-size:16px">🎵</span><h3>Audio Comernos</h3></div>
+      <div class="group-subtitle">${sc.count} posts · audio original</div>
+      <div class="group-kpis">
+        <div class="gkpi"><div class="gkpi-val" style="color:#FF6B35">${fmt(sc.views)}</div><div class="gkpi-lbl">Views</div></div>
+        <div class="gkpi"><div class="gkpi-val" style="color:#F7931E">${fmt(sc.likes)}</div><div class="gkpi-lbl">Likes</div></div>
+        <div class="gkpi"><div class="gkpi-val" style="color:#FF4757">${fmt(sc.shares)}</div><div class="gkpi-lbl">Shares</div></div>
+        <div class="gkpi"><div class="gkpi-val">${fmt(sc.comments)}</div><div class="gkpi-lbl">Coments</div></div>
+        <div class="gkpi"><div class="gkpi-val" style="color:#FF6B35">${sc.er}%</div><div class="gkpi-lbl">Eng. Rate</div></div>
+        <div class="gkpi"><div class="gkpi-val">${fmt(sc.avgViews)}</div><div class="gkpi-lbl">Views/post</div></div>
+      </div>
+      <div class="group-badges"><span class="gbadge gbadge-orange">${cvp}% del alcance</span></div>
+      <div class="group-insight gi-orange"><span class="gi-bold">Audio original.</span> Posts generados con el audio de "Comernos" como parte directa de la campaña.</div>
+    </div>
+    <div class="group-card gc-extras">
+      <div class="group-title"><span style="font-size:16px">🎧</span><h3>Extras</h3></div>
+      <div class="group-subtitle">${se.count} posts · audio externo</div>
+      <div class="group-kpis">
+        <div class="gkpi"><div class="gkpi-val" style="color:#7C3AED">${fmt(se.views)}</div><div class="gkpi-lbl">Views</div></div>
+        <div class="gkpi"><div class="gkpi-val" style="color:#7C3AED">${fmt(se.likes)}</div><div class="gkpi-lbl">Likes</div></div>
+        <div class="gkpi"><div class="gkpi-val" style="color:#7C3AED">${fmt(se.shares)}</div><div class="gkpi-lbl">Shares</div></div>
+        <div class="gkpi"><div class="gkpi-val">${fmt(se.comments)}</div><div class="gkpi-lbl">Coments</div></div>
+        <div class="gkpi"><div class="gkpi-val" style="color:#7C3AED">${se.er}%</div><div class="gkpi-lbl">Eng. Rate</div></div>
+        <div class="gkpi"><div class="gkpi-val">${fmt(se.avgViews)}</div><div class="gkpi-lbl">Views/post</div></div>
+      </div>
+      <div class="group-badges"><span class="gbadge gbadge-purple">${evp}% del alcance</span></div>
+      <div class="group-insight gi-purple"><span class="gi-bold">Alto alcance orgánico.</span> Posts con audio externo que amplificaron el reach de la campaña.</div>
+    </div>`;
+
+  document.getElementById('comp-section').innerHTML=`
+    <div style="font-size:11px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Comparación por métrica</div>
+    ${[['Views totales',cvp,evp],['Engagement total',cep,eep]].map(([label,cp,ep])=>`
+    <div class="comp-row">
+      <div class="comp-row-header"><span style="font-weight:500">${label}</span><span class="winner-badge ${parseFloat(ep)>parseFloat(cp)?'wb-purple':'wb-orange'}">${parseFloat(ep)>parseFloat(cp)?'🎧 Extras':'🎵 Comernos'} lidera</span></div>
+      <div class="comp-bars">
+        <div class="comp-bar-wrap"><div class="comp-bar-label">Comernos</div><div class="comp-bar-track"><div class="comp-bar-fill" style="width:${cp}%;background:#FF6B35"></div></div><div class="comp-bar-pct" style="color:#FF6B35">${cp}%</div></div>
+        <div class="comp-bar-wrap"><div class="comp-bar-label">Extras</div><div class="comp-bar-track"><div class="comp-bar-fill" style="width:${ep}%;background:#7C3AED"></div></div><div class="comp-bar-pct" style="color:#7C3AED">${ep}%</div></div>
+      </div>
+    </div>`).join('')}
+    <div class="group-insight gi-neutral" style="margin-top:8px">⚡ <span class="gi-bold">Nota:</span> El post viral de lariuuuuuu (2.3M views, Extra) explica gran parte de la diferencia entre grupos. Sin ese post, ambos grupos tendrían alcances similares.</div>`;
+}
+
+function renderList(){
+  const filtered=activeFilter==='all'?posts:posts.filter(p=>p.grupo===activeFilter);
+  document.getElementById('inf-list').innerHTML=filtered.map((p,i)=>{
+    const ci=i%5;
+    return `<div class="inf-card is-${p.grupo}">
+      <div class="inf-avatar" style="background:${AVATARBG[ci]};color:${AVATARTXT[ci]}">${getAbbr(p.nombre)}</div>
+      <div class="inf-info">
+        <div class="inf-name">${p.nombre}</div>
+        <span class="inf-tag ${p.grupo==='comernos'?'tag-c':'tag-e'}">${p.grupo==='comernos'?'🎵 Comernos':'🎧 Extra'}</span>
+        ${p.url?`<br><a class="inf-link" href="${p.url}" target="_blank">🔗 ${p.url.length>40?p.url.slice(0,40)+'…':p.url}</a>`:''}
+      </div>
+      <div class="inf-metrics">
+        <div class="inf-m"><div class="inf-m-val" style="color:#FF6B35">${fmt(p.views)}</div><div class="inf-m-lbl">Views</div></div>
+        <div class="inf-m"><div class="inf-m-val" style="color:#F7931E">${fmt(p.likes)}</div><div class="inf-m-lbl">Likes</div></div>
+        <div class="inf-m"><div class="inf-m-val" style="color:#E8A020">${fmt(p.comments)}</div><div class="inf-m-lbl">Coments</div></div>
+        <div class="inf-m"><div class="inf-m-val" style="color:#FF4757">${fmt(p.shares)}</div><div class="inf-m-lbl">Shares</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterList(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('.tab-btn').forEach(b=>{b.className='tab-btn';});
+  btn.classList.add(f==='all'?'active-all':f==='comernos'?'active-c':'active-e');
+  renderList();
+}
+
+function getDataForMetric(m){
+  if(m==='total')return posts.map(p=>(p.views||0)+(p.likes||0)+(p.comments||0)+(p.shares||0));
+  return posts.map(p=>p[m]||0);
+}
+function getColor(m){return{total:'#FF6B35',views:'#FF6B35',likes:'#F7931E',comments:'#E8A020',shares:'#FF4757'}[m];}
+
+function updateChart(){
+  const ctx=document.getElementById('lineChart');
+  if(chart){chart.destroy();chart=null;}
+  if(!posts.length)return;
+  const color=getColor(activeMetric);
+  chart=new Chart(ctx,{type:'line',
+    data:{labels:posts.map(p=>p.nombre.length>9?p.nombre.slice(0,9)+'…':p.nombre),
+      datasets:[{data:getDataForMetric(activeMetric),borderColor:color,backgroundColor:color+'22',
+        borderWidth:2,pointBackgroundColor:posts.map(p=>p.grupo==='extras'?'#7C3AED':color),
+        pointRadius:3,pointHoverRadius:5,fill:true,tension:.35}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>' '+c.parsed.y.toLocaleString(),
+        title:items=>{const p=posts[items[0].dataIndex];return p.nombre+' ('+(p.grupo==='extras'?'Extra':'Comernos')+')';}
+      }}},
+      scales:{
+        x:{grid:{color:'#F0D9CC'},ticks:{color:'#8B5E4A',font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:18}},
+        y:{grid:{color:'#F0D9CC'},ticks:{color:'#8B5E4A',font:{size:10},callback:v=>fmt(v)},beginAtZero:true}
+      }}});
+}
+
+function setMetric(m,btn){
+  activeMetric=m;
+  document.querySelectorAll('.ctrl-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  updateChart();
+}
+
+async function loadData(){
+  const {data,error}=await db.from('posts').select('*').order('views',{ascending:false});
+  if(error){
+    document.getElementById('loading').innerHTML='<p style="color:red">Error cargando datos: '+error.message+'</p>';
+    return;
+  }
+  posts=data||[];
+  document.getElementById('loading').style.display='none';
+  document.getElementById('content').style.display='block';
+  updateTotals();
+  renderInsights();
+  renderGroups();
+  renderList();
+  updateChart();
+}
+
+loadData();
+</script>
+</body>
+</html>

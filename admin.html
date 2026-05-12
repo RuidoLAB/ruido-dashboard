@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — Dashboard De La Ghetto</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--sun1:#FF6B35;--sun2:#F7931E;--sun4:#FF4757;--bg:#FFF8F3;--card:#FFFFFF;--border:#F0D9CC;--txt:#2D1B0E;--txt2:#8B5E4A;--sun-light:#FFF0E6;--ext1:#7C3AED;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);padding:28px;max-width:1000px;margin:0 auto;}
+h1{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;}
+h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;margin-bottom:14px;}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--sun1);flex-wrap:wrap;gap:10px;}
+.admin-badge{font-size:11px;font-weight:500;color:#fff;background:var(--sun1);padding:3px 10px;border-radius:20px;}
+
+/* LOGIN */
+.login-wrap{max-width:340px;margin:80px auto;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;}
+.login-wrap h2{text-align:center;margin-bottom:20px;}
+.login-wrap input{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;outline:none;}
+.login-wrap input:focus{border-color:var(--sun1);}
+.login-btn{width:100%;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--sun1),var(--sun4));color:#fff;cursor:pointer;}
+.login-error{font-size:12px;color:var(--sun4);margin-top:8px;text-align:center;}
+
+/* FORM */
+.section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.inp{font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);width:100%;outline:none;}
+.inp:focus{border-color:var(--sun1);}
+.inp-sm{width:100px;}
+select.inp{cursor:pointer;}
+label{font-size:11px;font-weight:500;color:var(--txt2);display:block;margin-bottom:4px;}
+.btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 20px;border-radius:8px;border:none;cursor:pointer;}
+.btn-primary{background:linear-gradient(135deg,var(--sun1),var(--sun4));color:#fff;}
+.btn-danger{background:#FFF0F0;color:var(--sun4);border:1px solid #FFCCCC;}
+.btn-primary:hover{opacity:.9;}
+.btn-danger:hover{background:#FFDDDD;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);padding:8px 12px;border-bottom:1px solid var(--border);}
+tbody tr{border-bottom:1px solid var(--border);}
+tbody tr:hover{background:#FFFAF7;}
+tbody td{padding:10px 12px;color:var(--txt);}
+.tag{font-size:9px;font-weight:500;padding:2px 7px;border-radius:10px;}
+.tag-c{background:#FFF0E6;color:#CC4400;}
+.tag-e{background:#EDE9FE;color:#5B21B6;}
+.td-actions{display:flex;gap:6px;}
+.btn-sm{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;border:none;cursor:pointer;}
+.btn-edit{background:#EFF6FF;color:#1D4ED8;}
+.btn-del{background:#FFF0F0;color:var(--sun4);}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--txt);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;}
+.toast.show{opacity:1;}
+
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+.stat-pill{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px;font-size:13px;}
+.stat-pill strong{font-size:18px;display:block;color:var(--sun1);}
+
+@media(max-width:640px){.form-grid{grid-template-columns:1fr;}.header{flex-direction:column;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <h2>Admin — RUIDO</h2>
+    <input type="password" id="pwd-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')checkLogin()"/>
+    <button class="login-btn" onclick="checkLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD ADMIN -->
+<div id="admin-screen" style="display:none">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <img src="logo.png" style="height:30px;width:auto;" alt="RUIDO" onerror="this.style.display='none'">
+      <div>
+        <h1>Dashboard Admin</h1>
+        <p style="font-size:12px;color:var(--txt2);margin-top:2px;">De La Ghetto — Influencer Tracker</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="admin-badge">Vista admin</span>
+      <button class="btn btn-danger" style="font-size:11px;padding:5px 12px;" onclick="logout()">Salir</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row" id="stats-row"></div>
+
+  <!-- FORM AGREGAR -->
+  <div class="section">
+    <h2 id="form-title">Agregar post</h2>
+    <input type="hidden" id="edit-id"/>
+    <div class="form-grid">
+      <div><label>Nombre del influencer</label><input class="inp" id="f-nombre" placeholder="@usuario"/></div>
+      <div><label>Link del post</label><input class="inp" id="f-url" placeholder="https://vt.tiktok.com/..."/></div>
+    </div>
+    <div class="form-grid">
+      <div><label>Grupo</label>
+        <select class="inp" id="f-grupo">
+          <option value="comernos">🎵 Audio Comernos</option>
+          <option value="extras">🎧 Extra</option>
+        </select>
+      </div>
+      <div><label>Views</label><input class="inp" id="f-views" type="number" min="0" placeholder="0"/></div>
+    </div>
+    <div class="form-grid">
+      <div><label>Likes</label><input class="inp" id="f-likes" type="number" min="0" placeholder="0"/></div>
+      <div><label>Comentarios</label><input class="inp" id="f-comments" type="number" min="0" placeholder="0"/></div>
+    </div>
+    <div class="form-grid">
+      <div><label>Shares</label><input class="inp" id="f-shares" type="number" min="0" placeholder="0"/></div>
+      <div style="display:flex;align-items:flex-end;gap:8px;">
+        <button class="btn btn-primary" onclick="savePost()" id="save-btn">+ Agregar</button>
+        <button class="btn" style="background:#F5F5F5;color:var(--txt2);" onclick="cancelEdit()" id="cancel-btn" style="display:none">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <h2 style="margin:0">Posts (<span id="post-count">0</span>)</h2>
+      <input class="inp" style="width:220px;" placeholder="Buscar influencer..." oninput="filterTable(this.value)"/>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Influencer</th>
+            <th>Grupo</th>
+            <th>Views</th>
+            <th>Likes</th>
+            <th>Coments</th>
+            <th>Shares</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="posts-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://mutwvgxgcviilvzgcbwr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11dHd2Z3hnY3ZpaWx2emdjYndyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1ODczNTMsImV4cCI6MjA5NDE2MzM1M30.Nuo9_uKIsT_U1DZaT7dGJZJmDZ4Krja2FwjEsvnGX4I';
+const ADMIN_PASSWORD = 'ruido2024';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allPosts = [];
+
+function checkLogin(){
+  const pwd = document.getElementById('pwd-input').value;
+  if(pwd === ADMIN_PASSWORD){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('admin-screen').style.display='block';
+    loadPosts();
+  } else {
+    document.getElementById('login-error').textContent='Contraseña incorrecta';
+  }
+}
+
+function logout(){
+  document.getElementById('login-screen').style.display='block';
+  document.getElementById('admin-screen').style.display='none';
+  document.getElementById('pwd-input').value='';
+}
+
+function fmt(n){if(!n)return'0';if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return String(n);}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+function renderStats(){
+  const total = allPosts.length;
+  const totalViews = allPosts.reduce((s,p)=>s+(p.views||0),0);
+  const comernos = allPosts.filter(p=>p.grupo==='comernos').length;
+  const extras = allPosts.filter(p=>p.grupo==='extras').length;
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat-pill"><strong>${total}</strong>Posts totales</div>
+    <div class="stat-pill"><strong>${fmt(totalViews)}</strong>Views totales</div>
+    <div class="stat-pill"><strong>${comernos}</strong>Audio Comernos</div>
+    <div class="stat-pill"><strong>${extras}</strong>Extras</div>`;
+}
+
+function renderTable(posts){
+  document.getElementById('post-count').textContent=posts.length;
+  document.getElementById('posts-table').innerHTML=posts.map(p=>`
+    <tr>
+      <td><a href="${p.url||'#'}" target="_blank" style="color:var(--sun1);text-decoration:none;font-weight:500">${p.nombre}</a></td>
+      <td><span class="tag ${p.grupo==='comernos'?'tag-c':'tag-e'}">${p.grupo==='comernos'?'🎵 Comernos':'🎧 Extra'}</span></td>
+      <td>${fmt(p.views)}</td>
+      <td>${fmt(p.likes)}</td>
+      <td>${p.comments||0}</td>
+      <td>${p.shares||0}</td>
+      <td><div class="td-actions">
+        <button class="btn-sm btn-edit" onclick="editPost(${p.id})">Editar</button>
+        <button class="btn-sm btn-del" onclick="deletePost(${p.id},'${p.nombre.replace(/'/g,"\\'")}')">Borrar</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+function filterTable(q){
+  const filtered=allPosts.filter(p=>p.nombre.toLowerCase().includes(q.toLowerCase()));
+  renderTable(filtered);
+}
+
+async function loadPosts(){
+  const {data,error}=await db.from('posts').select('*').order('views',{ascending:false});
+  if(error){showToast('Error: '+error.message);return;}
+  allPosts=data||[];
+  renderStats();
+  renderTable(allPosts);
+}
+
+async function savePost(){
+  const id=document.getElementById('edit-id').value;
+  const post={
+    nombre: document.getElementById('f-nombre').value.trim(),
+    url:    document.getElementById('f-url').value.trim(),
+    grupo:  document.getElementById('f-grupo').value,
+    views:  parseInt(document.getElementById('f-views').value)||0,
+    likes:  parseInt(document.getElementById('f-likes').value)||0,
+    comments: parseInt(document.getElementById('f-comments').value)||0,
+    shares: parseInt(document.getElementById('f-shares').value)||0,
+  };
+  if(!post.nombre){document.getElementById('f-nombre').focus();return;}
+
+  let error;
+  if(id){
+    ({error}=await db.from('posts').update(post).eq('id',id));
+    showToast('Post actualizado ✓');
+  } else {
+    ({error}=await db.from('posts').insert([post]));
+    showToast('Post agregado ✓');
+  }
+  if(error){showToast('Error: '+error.message);return;}
+  cancelEdit();
+  loadPosts();
+}
+
+function editPost(id){
+  const p=allPosts.find(x=>x.id===id);
+  if(!p)return;
+  document.getElementById('edit-id').value=p.id;
+  document.getElementById('f-nombre').value=p.nombre;
+  document.getElementById('f-url').value=p.url||'';
+  document.getElementById('f-grupo').value=p.grupo;
+  document.getElementById('f-views').value=p.views||0;
+  document.getElementById('f-likes').value=p.likes||0;
+  document.getElementById('f-comments').value=p.comments||0;
+  document.getElementById('f-shares').value=p.shares||0;
+  document.getElementById('form-title').textContent='Editar post';
+  document.getElementById('save-btn').textContent='Guardar cambios';
+  document.getElementById('cancel-btn').style.display='inline-block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function cancelEdit(){
+  document.getElementById('edit-id').value='';
+  ['f-nombre','f-url','f-views','f-likes','f-comments','f-shares'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-grupo').value='comernos';
+  document.getElementById('form-title').textContent='Agregar post';
+  document.getElementById('save-btn').textContent='+ Agregar';
+  document.getElementById('cancel-btn').style.display='none';
+}
+
+async function deletePost(id, nombre){
+  if(!confirm(`¿Borrar el post de ${nombre}?`))return;
+  const {error}=await db.from('posts').delete().eq('id',id);
+  if(error){showToast('Error: '+error.message);return;}
+  showToast('Post eliminado ✓');
+  loadPosts();
+}
+
+document.getElementById('pwd-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter')checkLogin();
+});
+</script>
+</body>
+</html>
