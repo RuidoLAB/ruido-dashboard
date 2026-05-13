@@ -155,18 +155,59 @@ function updateTotals(){
   document.getElementById('posts-count').textContent=`Resumen total de campaña — ${posts.length} posts`;
 }
 
-function renderInsights(){
+function renderInsights(objetivo){
   const bv=[...posts].sort((a,b)=>b.views-a.views);
   const be=posts.map(p=>({...p,er:p.views?((p.likes+p.comments+p.shares)/p.views*100):0})).sort((a,b)=>b.er-a.er);
   const bc=[...posts].sort((a,b)=>b.comments-a.comments);
   const bs=[...posts].sort((a,b)=>b.shares-a.shares);
+  const bl=[...posts].sort((a,b)=>b.likes-a.likes);
   const t=calcStats(posts);
-  document.getElementById('insights-grid').innerHTML=`
-    <div class="insight-card" style="border-left:3px solid #FF6B35;background:linear-gradient(135deg,#FFF3EE,#fff)"><div class="ic-icon">🏆</div><div><div class="ic-label">Mayor alcance</div><div class="ic-title">${bv[0]?.nombre||'—'} — ${fmt(bv[0]?.views||0)} views</div><div class="ic-text">Seguido por ${bv[1]?.nombre||'—'} (${fmt(bv[1]?.views||0)}) y ${bv[2]?.nombre||'—'} (${fmt(bv[2]?.views||0)}).</div></div></div>
-    <div class="insight-card" style="border-left:3px solid #22C55E;background:linear-gradient(135deg,#F0FDF4,#fff)"><div class="ic-icon">🔥</div><div><div class="ic-label">Mayor engagement rate</div><div class="ic-title">${be[0]?.nombre||'—'} — ${be[0]?.er.toFixed(1)||0}% ER</div><div class="ic-text">Le siguen ${be[1]?.nombre||'—'} (${be[1]?.er.toFixed(1)||0}%) y ${be[2]?.nombre||'—'} (${be[2]?.er.toFixed(1)||0}%).</div></div></div>
-    <div class="insight-card" style="border-left:3px solid #F7931E;background:linear-gradient(135deg,#FFF7ED,#fff)"><div class="ic-icon">💬</div><div><div class="ic-label">Más conversación</div><div class="ic-title">${bc[0]?.nombre||'—'} — ${bc[0]?.comments||0} comentarios</div><div class="ic-text">Seguido por ${bc[1]?.nombre||'—'} (${bc[1]?.comments||0}) y ${bc[2]?.nombre||'—'} (${bc[2]?.comments||0}).</div></div></div>
-    <div class="insight-card" style="border-left:3px solid #7C3AED;background:linear-gradient(135deg,#F5F3FF,#fff)"><div class="ic-icon">📤</div><div><div class="ic-label">Más compartido</div><div class="ic-title">${bs[0]?.nombre||'—'} — ${bs[0]?.shares||0} shares</div><div class="ic-text">Seguido por ${bs[1]?.nombre||'—'} (${bs[1]?.shares||0}) y ${bs[2]?.nombre||'—'} (${bs[2]?.shares||0}).</div></div></div>
-    <div class="insight-card" style="border-left:3px solid #C44569;background:linear-gradient(135deg,#FFF0F6,#fff)"><div class="ic-icon">📊</div><div><div class="ic-label">Resumen general</div><div class="ic-title">${fmt(t.views)} views — ${t.er}% ER</div><div class="ic-text"><strong>${posts.length} posts</strong> con ${fmt(t.engagement)} interacciones y ${fmt(t.avgViews)} views promedio por post.</div></div></div>`;
+  const avgER=(posts.reduce((s,p)=>s+(p.views?((p.likes+p.comments+p.shares)/p.views*100):0),0)/posts.length).toFixed(1);
+
+  let cards = [];
+
+  if(objetivo==='alcance'){
+    cards=[
+      {icon:'📡',color:'#FF6B35',bg:'#FFF3EE',label:'Top alcance',title:`${bv[0]?.nombre||'—'} — ${fmt(bv[0]?.views||0)} views`,text:`Seguido por ${bv[1]?.nombre||'—'} (${fmt(bv[1]?.views||0)}) y ${bv[2]?.nombre||'—'} (${fmt(bv[2]?.views||0)}).`},
+      {icon:'🏆',color:'#F7931E',bg:'#FFF7ED',label:'Top 3 por views',title:`${fmt(bv[0]?.views||0)} / ${fmt(bv[1]?.views||0)} / ${fmt(bv[2]?.views||0)}`,text:`Los 3 posts de mayor alcance concentran <strong>${fmt(bv.slice(0,3).reduce((s,p)=>s+(p.views||0),0))}</strong> views del total de la campaña.`},
+      {icon:'📈',color:'#22C55E',bg:'#F0FDF4',label:'Promedio de alcance',title:`${fmt(t.avgViews)} views por post`,text:`La campaña generó <strong>${fmt(t.views)} views totales</strong> en ${posts.length} posts. El post más bajo tuvo ${fmt(bv[bv.length-1]?.views||0)} views.`},
+      {icon:'📤',color:'#7C3AED',bg:'#F5F3FF',label:'Más viralizado',title:`${bs[0]?.nombre||'—'} — ${bs[0]?.shares||0} shares`,text:`Los shares amplifican el alcance orgánico. Seguido por ${bs[1]?.nombre||'—'} (${bs[1]?.shares||0}) y ${bs[2]?.nombre||'—'} (${bs[2]?.shares||0}).`},
+      {icon:'📊',color:'#C44569',bg:'#FFF0F6',label:'Resumen de alcance',title:`${fmt(t.views)} views totales`,text:`<strong>${posts.length} posts</strong> publicados. Promedio de ${fmt(t.avgViews)} views/post con un ER del ${t.er}%.`},
+    ];
+  } else if(objetivo==='engagement'){
+    cards=[
+      {icon:'🔥',color:'#FF6B35',bg:'#FFF3EE',label:'Mayor engagement rate',title:`${be[0]?.nombre||'—'} — ${be[0]?.er.toFixed(1)||0}% ER`,text:`Le siguen ${be[1]?.nombre||'—'} (${be[1]?.er.toFixed(1)||0}%) y ${be[2]?.nombre||'—'} (${be[2]?.er.toFixed(1)||0}%). Promedio campaña: <strong>${avgER}%</strong>.`},
+      {icon:'💬',color:'#F7931E',bg:'#FFF7ED',label:'Más conversación',title:`${bc[0]?.nombre||'—'} — ${bc[0]?.comments||0} comentarios`,text:`Seguido por ${bc[1]?.nombre||'—'} (${bc[1]?.comments||0}) y ${bc[2]?.nombre||'—'} (${bc[2]?.comments||0}). Total: <strong>${t.comments} comentarios</strong>.`},
+      {icon:'❤️',color:'#EC4899',bg:'#FDF2F8',label:'Más likes',title:`${bl[0]?.nombre||'—'} — ${fmt(bl[0]?.likes||0)} likes`,text:`Seguido por ${bl[1]?.nombre||'—'} (${fmt(bl[1]?.likes||0)}) y ${bl[2]?.nombre||'—'} (${fmt(bl[2]?.likes||0)}). Total: <strong>${fmt(t.likes)} likes</strong>.`},
+      {icon:'📤',color:'#7C3AED',bg:'#F5F3FF',label:'Más compartido',title:`${bs[0]?.nombre||'—'} — ${bs[0]?.shares||0} shares`,text:`Seguido por ${bs[1]?.nombre||'—'} (${bs[1]?.shares||0}) y ${bs[2]?.nombre||'—'} (${bs[2]?.shares||0}). Total: <strong>${t.shares} shares</strong>.`},
+      {icon:'📊',color:'#C44569',bg:'#FFF0F6',label:'Resumen de engagement',title:`${fmt(t.engagement)} interacciones totales`,text:`<strong>${posts.length} posts</strong> con ${avgER}% ER promedio. Campaña altamente interactiva con ${fmt(t.likes)} likes, ${t.comments} comentarios y ${t.shares} shares.`},
+    ];
+  } else if(objetivo==='volumen'){
+    const byEng=[...posts].sort((a,b)=>(b.likes+b.comments+b.shares)-(a.likes+a.comments+a.shares));
+    const conActividad=posts.filter(p=>p.likes>0||p.views>0).length;
+    cards=[
+      {icon:'📦',color:'#FF6B35',bg:'#FFF3EE',label:'Volumen de campaña',title:`${posts.length} posts publicados`,text:`La campaña alcanzó <strong>${posts.length} creaciones</strong>. ${conActividad} posts tuvieron actividad registrada (${Math.round(conActividad/posts.length*100)}% del total).`},
+      {icon:'⭐',color:'#F7931E',bg:'#FFF7ED',label:'Mejor post del lote',title:`${byEng[0]?.nombre||'—'} — ${fmt((byEng[0]?.likes||0)+(byEng[0]?.comments||0)+(byEng[0]?.shares||0))} interacciones`,text:`Destaca sobre el promedio del lote con <strong>${fmt(byEng[0]?.views||0)} views</strong> y ${byEng[0]?.likes||0} likes.`},
+      {icon:'📉',color:'#22C55E',bg:'#F0FDF4',label:'Promedio por post',title:`${fmt(t.avgViews)} views · ${Math.round(t.likes/posts.length)} likes`,text:`Promedio de campaña de volumen. El objetivo no es el alcance masivo sino la <strong>presencia sostenida</strong> de la marca en la plataforma.`},
+      {icon:'💬',color:'#7C3AED',bg:'#F5F3FF',label:'Conversación generada',title:`${t.comments} comentarios totales`,text:`A pesar del perfil de micro-influencers, la campaña generó <strong>${t.comments} comentarios</strong> y ${t.shares} shares — señal de comunidades activas.`},
+      {icon:'📊',color:'#C44569',bg:'#FFF0F6',label:'Resumen de volumen',title:`${fmt(t.views)} views en ${posts.length} posts`,text:`Campaña de <strong>volumen y presencia</strong>. ${posts.length} creadores participaron generando ${fmt(t.engagement)} interacciones totales con un ER del ${t.er}%.`},
+    ];
+  } else {
+    // awareness o default
+    cards=[
+      {icon:'🏆',color:'#FF6B35',bg:'#FFF3EE',label:'Mayor alcance',title:`${bv[0]?.nombre||'—'} — ${fmt(bv[0]?.views||0)} views`,text:`Seguido por ${bv[1]?.nombre||'—'} (${fmt(bv[1]?.views||0)}) y ${bv[2]?.nombre||'—'} (${fmt(bv[2]?.views||0)}).`},
+      {icon:'🔥',color:'#22C55E',bg:'#F0FDF4',label:'Mayor engagement rate',title:`${be[0]?.nombre||'—'} — ${be[0]?.er.toFixed(1)||0}% ER`,text:`Le siguen ${be[1]?.nombre||'—'} (${be[1]?.er.toFixed(1)||0}%) y ${be[2]?.nombre||'—'} (${be[2]?.er.toFixed(1)||0}%).`},
+      {icon:'💬',color:'#F7931E',bg:'#FFF7ED',label:'Más conversación',title:`${bc[0]?.nombre||'—'} — ${bc[0]?.comments||0} comentarios`,text:`Seguido por ${bc[1]?.nombre||'—'} (${bc[1]?.comments||0}) y ${bc[2]?.nombre||'—'} (${bc[2]?.comments||0}).`},
+      {icon:'📤',color:'#7C3AED',bg:'#F5F3FF',label:'Más compartido',title:`${bs[0]?.nombre||'—'} — ${bs[0]?.shares||0} shares`,text:`Seguido por ${bs[1]?.nombre||'—'} (${bs[1]?.shares||0}) y ${bs[2]?.nombre||'—'} (${bs[2]?.shares||0}).`},
+      {icon:'📊',color:'#C44569',bg:'#FFF0F6',label:'Resumen general',title:`${fmt(t.views)} views — ${t.er}% ER`,text:`<strong>${posts.length} posts</strong> con ${fmt(t.engagement)} interacciones y ${fmt(t.avgViews)} views promedio por post.`},
+    ];
+  }
+
+  document.getElementById('insights-grid').innerHTML=cards.map(c=>`
+    <div class="insight-card" style="border-left:3px solid ${c.color};background:linear-gradient(135deg,${c.bg},#fff)">
+      <div class="ic-icon">${c.icon}</div>
+      <div><div class="ic-label">${c.label}</div><div class="ic-title">${c.title}</div><div class="ic-text">${c.text}</div></div>
+    </div>`).join('');
 }
 
 function renderGroups(){
@@ -298,7 +339,14 @@ async function loadData(){
 
   document.getElementById('loading').style.display='none';
   document.getElementById('content').style.display='block';
-  updateTotals();renderInsights();renderGroups();renderFilters();renderList();updateChart();
+  updateTotals();renderInsights(campaign.objetivo||'awareness');renderGroups();renderFilters();renderList();updateChart();
+
+  // Show objetivo badge in header
+  const objLabels={alcance:'📡 Alcance masivo',engagement:'🔥 Engagement',volumen:'📦 Volumen de creaciones',awareness:'🎯 Awareness'};
+  const objBadge=document.createElement('span');
+  objBadge.style.cssText='font-size:11px;font-weight:500;color:var(--txt2);background:var(--sun-light);border:1px solid var(--border);padding:3px 10px;border-radius:20px;margin-left:8px';
+  objBadge.textContent=objLabels[campaign.objetivo]||'🎯 Awareness';
+  document.querySelector('.client-badge').after(objBadge);
 }
 
 loadData();

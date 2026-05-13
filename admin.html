@@ -102,6 +102,15 @@ tbody td{padding:10px 12px;color:var(--txt);}
         <div><label>Nombre de la campaña</label><input class="inp" id="nc-name" placeholder="Ej: De La Ghetto"/></div>
         <div><label>Slug (para el link del cliente)</label><input class="inp" id="nc-slug" placeholder="Ej: delaghetto" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')"/></div>
       </div>
+      <div style="margin-bottom:10px;">
+        <label>Objetivo de la campaña</label>
+        <select class="inp" id="nc-objetivo">
+          <option value="alcance">📡 Alcance masivo (views e impresiones)</option>
+          <option value="engagement">🔥 Engagement e interacción (likes, comentarios, shares)</option>
+          <option value="volumen">📦 Volumen de creaciones (cantidad de posts)</option>
+          <option value="awareness">🎯 Awareness de marca (mix de todo)</option>
+        </select>
+      </div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-primary" onclick="createCampaign()">Crear campaña</button>
         <button class="btn btn-secondary" onclick="document.getElementById('new-campaign-form').style.display='none'">Cancelar</button>
@@ -269,6 +278,7 @@ function renderCampaigns(){
         </div>
       </div>
       <div class="campaign-slug">slug: ${c.slug}</div>
+      ${c.objetivo?`<div style="font-size:11px;color:var(--sun1);margin-bottom:4px">${{alcance:'📡 Alcance',engagement:'🔥 Engagement',volumen:'📦 Volumen',awareness:'🎯 Awareness'}[c.objetivo]||c.objetivo}</div>`:''}
       <a class="campaign-link" href="/?c=${c.slug}" target="_blank" onclick="event.stopPropagation()">ruido-dashboard.vercel.app?c=${c.slug} →</a>
       <div class="campaign-actions">
         <button class="btn btn-danger" style="font-size:11px;padding:5px 14px;width:100%;margin-top:4px" onclick="event.stopPropagation();openDeleteModal(${c.id})">Eliminar campaña</button>
@@ -281,7 +291,8 @@ async function createCampaign(){
   const name=document.getElementById('nc-name').value.trim();
   const slug=document.getElementById('nc-slug').value.trim();
   if(!name||!slug){showToast('Completa nombre y slug');return;}
-  const {error}=await db.from('campaigns').insert([{name,slug}]);
+  const objetivo=document.getElementById('nc-objetivo').value;
+  const {error}=await db.from('campaigns').insert([{name,slug,objetivo}]);
   if(error){showToast('Error: '+error.message);return;}
   document.getElementById('nc-name').value='';
   document.getElementById('nc-slug').value='';
