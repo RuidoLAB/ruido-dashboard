@@ -317,8 +317,8 @@ async function saveEditName(id){
 let pendingDeleteId = null;
 
 function openDeleteModal(id){
-  pendingDeleteId = id;
-  const c = allCampaigns.find(x=>x.id===id);
+  pendingDeleteId = Number(id);
+  const c = allCampaigns.find(x=>x.id===pendingDeleteId);
   document.getElementById('modal-msg').textContent = 'Se eliminarán todos los posts de "' + (c?c.name:'esta campaña') + '". Esta acción no se puede deshacer.';
   document.getElementById('delete-modal').style.display='flex';
 }
@@ -329,9 +329,10 @@ function closeModal(){
 }
 
 async function confirmDelete(){
-  if(!pendingDeleteId) return;
+  const idToDelete = pendingDeleteId;
   closeModal();
-  await deleteCampaign(pendingDeleteId);
+  if(!idToDelete) return;
+  await deleteCampaign(idToDelete);
 }
 
 async function deleteCampaign(id){
