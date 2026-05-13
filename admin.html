@@ -262,6 +262,30 @@ async function createCampaign(){
   loadCampaigns();
 }
 
+function startEditName(id){
+  document.getElementById('cname-'+id).style.display='none';
+  document.getElementById('cedit-'+id).style.display='block';
+  document.getElementById('cinput-'+id).focus();
+}
+
+function cancelEditName(id){
+  document.getElementById('cname-'+id).style.display='block';
+  document.getElementById('cedit-'+id).style.display='none';
+}
+
+async function saveEditName(id){
+  const val=document.getElementById('cinput-'+id).value.trim();
+  if(!val)return;
+  const {error}=await db.from('campaigns').update({name:val}).eq('id',id);
+  if(error){showToast('Error: '+error.message);return;}
+  if(selectedCampaign&&selectedCampaign.id===id){
+    selectedCampaign.name=val;
+    document.getElementById('scb-name').textContent=val;
+  }
+  showToast('Nombre actualizado ✓');
+  loadCampaigns();
+}
+
 async function deleteCampaign(id,name){
   if(!confirm(`¿Eliminar la campaña "${name}" y todos sus posts?`))return;
   await db.from('posts').delete().eq('campaign_id',id);
