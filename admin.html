@@ -93,7 +93,10 @@ tbody td{padding:10px 12px;color:var(--txt);}
   <div class="section">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
       <h2 style="margin:0">Campañas</h2>
-      <button class="btn btn-primary" onclick="showNewCampaignForm()">+ Nueva campaña</button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input class="inp" style="width:200px;" id="campaign-search" placeholder="Buscar campaña..." oninput="filterCampaigns(this.value)"/>
+        <button class="btn btn-primary" onclick="showNewCampaignForm()">+ Nueva campaña</button>
+      </div>
     </div>
 
     <!-- FORM NUEVA CAMPAÑA -->
@@ -257,13 +260,22 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function loadCampaigns(){
   const {data}=await db.from('campaigns').select('*').order('created_at',{ascending:false});
   allCampaigns=data||[];
-  renderCampaigns();
+  const q=document.getElementById('campaign-search')?.value||'';
+  filterCampaigns(q);
 }
 
-function renderCampaigns(){
+function filterCampaigns(q){
+  const filtered = q.trim()
+    ? allCampaigns.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.slug.toLowerCase().includes(q.toLowerCase()))
+    : allCampaigns;
+  renderCampaigns(filtered);
+}
+
+function renderCampaigns(list){
+  list = list || allCampaigns;
   const grid=document.getElementById('campaigns-grid');
-  if(!allCampaigns.length){grid.innerHTML='<p style="color:var(--txt2);font-size:13px">No hay campañas aún. Crea la primera.</p>';return;}
-  grid.innerHTML=allCampaigns.map(c=>{
+  if(!list.length){grid.innerHTML='<p style="color:var(--txt2);font-size:13px">'+(allCampaigns.length?'Sin resultados para esa búsqueda.':'No hay campañas aún. Crea la primera.')+'</p>';return;}
+  grid.innerHTML=list.map(c=>{
     const isActive=selectedCampaign&&selectedCampaign.id===c.id;
     return `<div class="campaign-card ${isActive?'active':''}" onclick="selectCampaign(${c.id})">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
