@@ -40,6 +40,12 @@ label{font-size:11px;font-weight:500;color:var(--txt2);display:block;margin-bott
 .campaign-stats{font-size:12px;color:var(--txt2);}
 .campaign-link{font-size:11px;color:var(--sun1);word-break:break-all;margin-top:8px;display:block;}
 .campaign-actions{display:flex;gap:6px;margin-top:12px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.modal-box{background:#fff;border-radius:16px;padding:32px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-box h3{font-family:"DM Serif Display",serif;font-size:20px;font-weight:400;margin-bottom:8px;color:var(--txt);}
+.modal-box p{font-size:13px;color:var(--txt2);margin-bottom:24px;line-height:1.6;}
+.modal-actions{display:flex;gap:10px;justify-content:center;}
+.modal-actions .btn{min-width:100px;}
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 thead th{text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);padding:8px 12px;border-bottom:1px solid var(--border);}
@@ -195,6 +201,16 @@ tbody td{padding:10px 12px;color:var(--txt);}
   </div>
 </div>
 
+<div class="modal-overlay" id="delete-modal" style="display:none">
+  <div class="modal-box">
+    <h3>¿Eliminar campaña?</h3>
+    <p id="modal-msg">Se eliminarán todos los posts de esta campaña. Esta acción no se puede deshacer.</p>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="confirmDelete()">Sí, eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -255,7 +271,7 @@ function renderCampaigns(){
       <div class="campaign-slug">slug: ${c.slug}</div>
       <a class="campaign-link" href="/?c=${c.slug}" target="_blank" onclick="event.stopPropagation()">ruido-dashboard.vercel.app?c=${c.slug} →</a>
       <div class="campaign-actions">
-        <button class="btn-sm btn-del" onclick="event.stopPropagation();deleteCampaign(${c.id})">Eliminar campaña</button>
+        <button class="btn btn-danger" style="font-size:11px;padding:5px 14px;width:100%;margin-top:4px" onclick="event.stopPropagation();openDeleteModal(${c.id})">Eliminar campaña</button>
       </div>
     </div>`;
   }).join('');
@@ -296,6 +312,26 @@ async function saveEditName(id){
   }
   showToast('Nombre actualizado ✓');
   loadCampaigns();
+}
+
+let pendingDeleteId = null;
+
+function openDeleteModal(id){
+  pendingDeleteId = id;
+  const c = allCampaigns.find(x=>x.id===id);
+  document.getElementById('modal-msg').textContent = 'Se eliminarán todos los posts de "' + (c?c.name:'esta campaña') + '". Esta acción no se puede deshacer.';
+  document.getElementById('delete-modal').style.display='flex';
+}
+
+function closeModal(){
+  document.getElementById('delete-modal').style.display='none';
+  pendingDeleteId = null;
+}
+
+async function confirmDelete(){
+  if(!pendingDeleteId) return;
+  closeModal();
+  await deleteCampaign(pendingDeleteId);
 }
 
 async function deleteCampaign(id){
